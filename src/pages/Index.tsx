@@ -36,6 +36,11 @@ const Index = () => {
 
           {/* Technical labels */}
           <TechLabels />
+
+          {/* Footer Author Label */}
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 text-[10px] text-cyan-400/50 font-mono tracking-widest uppercase pointer-events-none z-50">
+            By: Autor Fernando Cerqueira
+          </div>
         </main>
 
       </div>
