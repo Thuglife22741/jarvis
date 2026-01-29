@@ -63,7 +63,7 @@ const JarvisCore = () => {
   return (
     <button
       onClick={toggleConversation}
-      className="relative flex items-center justify-center focus:outline-none cursor-pointer group"
+      className="relative flex items-center justify-center focus:outline-none cursor-pointer group pointer-events-auto"
       aria-label={isActive ? "End conversation" : "Start conversation"}
     >
       {/* Outer glow ring - enhanced when active */}

@@ -16,7 +16,7 @@ const Index = () => {
         <SplineRobotBackground />
         
         {/* Background grid - on top of robot */}
-        <div className="relative z-10">
+        <div className="relative z-10 pointer-events-none">
           <GridBackground />
         </div>
 
@@ -24,7 +24,7 @@ const Index = () => {
         <JarvisHeader />
 
         {/* Main content - centered */}
-        <main className="relative z-20 flex items-center justify-center min-h-screen">
+        <main className="relative z-20 flex items-center justify-center min-h-screen pointer-events-none">
           {/* Orbital rings and particles */}
           <OrbitalRing />
 
