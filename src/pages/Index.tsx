@@ -38,8 +38,15 @@ const Index = () => {
           <TechLabels />
 
           {/* Footer Author Label */}
-          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 text-[10px] text-cyan-400/50 font-mono tracking-widest uppercase pointer-events-none z-50">
-            By: Autor Fernando Cerqueira
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 text-[10px] pointer-events-none z-50">
+            <a 
+              href="https://wa.me/5521989732007"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-cyan-400/50 font-mono tracking-widest uppercase pointer-events-auto transition-all duration-300 hover:text-cyan-300 hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.8)] hover:underline decoration-cyan-400/30 underline-offset-4"
+            >
+              By: Autor Fernando Cerqueira
+            </a>
           </div>
         </main>
 
