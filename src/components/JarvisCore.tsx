@@ -2,9 +2,9 @@ import { motion } from "framer-motion";
 import { useElevenLabs } from "@/contexts/ElevenLabsContext";
 
 const JarvisCore = () => {
-  const { status, isSpeaking, isConnecting, toggleConversation } = useElevenLabs();
+  const { status, isSpeaking, isConnecting, isListening, toggleConversation } = useElevenLabs();
   const isActive = status === "connected";
-  const isProcessing = isActive && !isSpeaking;
+  const isProcessing = isActive && !isSpeaking && !isListening;
 
   // Dynamic glow intensity based on state
   const getGlowStyle = () => {
@@ -227,8 +227,10 @@ const JarvisCore = () => {
           ? "INITIALIZING..." 
           : isSpeaking 
           ? "JARVIS SPEAKING" 
+          : isListening
+          ? "LISTENING..."
           : isActive 
-          ? "LISTENING" 
+          ? "PROCESSING..." 
           : "CLICK TO TALK"}
       </motion.div>
     </button>
