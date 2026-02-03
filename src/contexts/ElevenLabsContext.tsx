@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useCallback, useState, useRef, useEffect } from "react";
 import { useConversation } from "@elevenlabs/react";
 
-const AGENT_ID = "agent_6201kg2y4qptfv8tq446agbtveyr";
+const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID || "agent_6201kg2y4qptfv8tq446agbtveyr";
+
+const MAX_RECONNECT_ATTEMPTS = 3;
 
 type ConversationStatus = "connected" | "connecting" | "disconnected";
 
@@ -23,6 +25,9 @@ export const ElevenLabsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const sessionActiveRef = useRef(false);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const intentionalDisconnectRef = useRef(false);
+  const wasConnectedRef = useRef(false);
+  const reconnectAttemptsRef = useRef(0);
+  const reconnectTimerRef = useRef<number | null>(null);
 
   const conversation = useConversation({
     onConnect: () => {
@@ -30,6 +35,8 @@ export const ElevenLabsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setIsConnecting(false);
       sessionActiveRef.current = true;
       intentionalDisconnectRef.current = false;
+      wasConnectedRef.current = true;
+      reconnectAttemptsRef.current = 0;
       setIsListening(true);
     },
     onDisconnect: () => {
@@ -50,6 +57,26 @@ export const ElevenLabsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // Log if disconnect was unexpected
       if (!intentionalDisconnectRef.current) {
         console.warn("Unexpected disconnect from ElevenLabs agent");
+
+        // Auto-reconnect (limited attempts) only if we had a real connection before
+        if (wasConnectedRef.current && reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
+          reconnectAttemptsRef.current += 1;
+          const attempt = reconnectAttemptsRef.current;
+          const delayMs = Math.min(4000, 600 * attempt);
+          console.warn(`Scheduling reconnect attempt ${attempt}/${MAX_RECONNECT_ATTEMPTS} in ${delayMs}ms`);
+
+          if (reconnectTimerRef.current) {
+            window.clearTimeout(reconnectTimerRef.current);
+          }
+
+          reconnectTimerRef.current = window.setTimeout(() => {
+            // Don't reconnect if user manually stopped meanwhile
+            if (intentionalDisconnectRef.current) return;
+            console.warn(`Reconnect attempt ${attempt} starting...`);
+            // Reuse the same start function (will re-request mic permission if needed)
+            startConversation();
+          }, delayMs);
+        }
       }
     },
     onError: (error) => {
@@ -99,6 +126,11 @@ export const ElevenLabsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return () => {
       console.log("ElevenLabsProvider unmounting, cleaning up...");
       intentionalDisconnectRef.current = true;
+
+      if (reconnectTimerRef.current) {
+        window.clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
       
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach(track => {
@@ -128,6 +160,7 @@ export const ElevenLabsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // Start the session with the agent using WebRTC
       const sessionResult = await conversation.startSession({
         agentId: AGENT_ID,
+        connectionType: "webrtc",
       } as Parameters<typeof conversation.startSession>[0]);
       
       console.log("Session started successfully:", sessionResult);
@@ -151,6 +184,13 @@ export const ElevenLabsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
     
     intentionalDisconnectRef.current = true;
+    wasConnectedRef.current = false;
+    reconnectAttemptsRef.current = 0;
+
+    if (reconnectTimerRef.current) {
+      window.clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
     
     try {
       await conversation.endSession();
