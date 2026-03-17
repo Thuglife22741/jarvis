@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useCallback, useState, useRef, useEffect } from "react";
 import { useConversation } from "@elevenlabs/react";
 
-const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID || "agent_6201kg2y4qptfv8tq446agbtveyr";
+const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
 
 const MAX_RECONNECT_ATTEMPTS = 3;
 
@@ -12,26 +12,78 @@ interface ElevenLabsContextType {
   isSpeaking: boolean;
   isConnecting: boolean;
   isListening: boolean;
+  isMCPActive: boolean;       // True while a Rube tool is being dispatched
   lastMessage: string | null;
+  activeMCPTools: string[];   // Names of the last tools fired
   toggleConversation: () => Promise<void>;
 }
 
 const ElevenLabsContext = createContext<ElevenLabsContextType | null>(null);
 
+const remoteLog = (msg: string) => {
+  console.log(msg);
+  fetch('http://localhost:3001/api/log', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: msg })
+  }).catch(() => null);
+};
+
 export const ElevenLabsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [lastMessage, setLastMessage] = useState<string | null>(null);
+  const [isMCPActive, setIsMCPActive] = useState(false);
+  const [activeMCPTools, setActiveMCPTools] = useState<string[]>([]);
   const sessionActiveRef = useRef(false);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
   const intentionalDisconnectRef = useRef(false);
   const wasConnectedRef = useRef(false);
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimerRef = useRef<number | null>(null);
 
+  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+
   const conversation = useConversation({
+    // ── Client Tools ────────────────────────────────────────────────────────
+    // These are called BY the ElevenLabs agent when the user requests data.
+    // They fetch live from the JARVIS backend API.
+    clientTools: {
+      get_calendar_events: async (parameters: Record<string, unknown>) => {
+        remoteLog(`⚡ [Client Tool] get_calendar_events chamado pelo agente. Params: ${JSON.stringify(parameters)}`);
+        setIsMCPActive(true);
+        setActiveMCPTools(['get_calendar_events']);
+
+        let result = 'Aguarde, ocorreu um erro ao consultar sua agenda.';
+        try {
+          const queryStr = parameters.query ? String(parameters.query) : 'eventos de hoje';
+          remoteLog(`🔍 Resolving query "${queryStr}"...`);
+          
+          const res = await fetch('http://localhost:3001/api/calendar', { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: queryStr })
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            result = data.cleanedToolData || data.text;
+            remoteLog(`✅ Query succeeded, data matched.`);
+          } else {
+            remoteLog(`❌ Backend responded with HTML error or invalid. Status: ${res.status}`);
+          }
+        } catch (error) {
+          remoteLog(`❌ Catch Error parsing calendar API call: ${error}`);
+        }
+
+        remoteLog(`[Calendar] 📨 Retornando para o agente a string: "${result}"`);
+        
+        setTimeout(() => { setIsMCPActive(false); setActiveMCPTools([]); }, 3000);
+        return result;
+      },
+    },
+
     onConnect: () => {
-      console.log("Connected to ElevenLabs agent");
+      remoteLog('[ElevenLabs] ✅ Conectado ao agente George. Ready to speak/listen.');
       setIsConnecting(false);
       sessionActiveRef.current = true;
       intentionalDisconnectRef.current = false;
@@ -39,65 +91,39 @@ export const ElevenLabsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       reconnectAttemptsRef.current = 0;
       setIsListening(true);
     },
-    onDisconnect: () => {
-      console.log("Disconnected from ElevenLabs agent");
+
+    onDisconnect: (reason) => {
+      remoteLog(`[ElevenLabs] 🔴 Desconectado. Reason/Args: ${JSON.stringify(reason || 'nenhum dado')}`);
       setIsConnecting(false);
       sessionActiveRef.current = false;
       setIsListening(false);
-      
-      // Clean up media stream on disconnect
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(track => {
-          track.stop();
-          console.log("Stopped audio track:", track.label);
-        });
-        mediaStreamRef.current = null;
-      }
-      
-      // Log if disconnect was unexpected
-      if (!intentionalDisconnectRef.current) {
-        console.warn("Unexpected disconnect from ElevenLabs agent");
-
-        // Auto-reconnect (limited attempts) only if we had a real connection before
-        if (wasConnectedRef.current && reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
-          reconnectAttemptsRef.current += 1;
-          const attempt = reconnectAttemptsRef.current;
-          const delayMs = Math.min(4000, 600 * attempt);
-          console.warn(`Scheduling reconnect attempt ${attempt}/${MAX_RECONNECT_ATTEMPTS} in ${delayMs}ms`);
-
-          if (reconnectTimerRef.current) {
-            window.clearTimeout(reconnectTimerRef.current);
-          }
-
-          reconnectTimerRef.current = window.setTimeout(() => {
-            // Don't reconnect if user manually stopped meanwhile
-            if (intentionalDisconnectRef.current) return;
-            console.warn(`Reconnect attempt ${attempt} starting...`);
-            // Reuse the same start function (will re-request mic permission if needed)
-            startConversation();
-          }, delayMs);
-        }
-      }
     },
+
     onError: (error) => {
-      console.error("ElevenLabs error:", error);
+      remoteLog(`[ElevenLabs] 🚨 Erro Crash: ${typeof error === 'string' ? error : JSON.stringify(error)}`);
       setIsConnecting(false);
-      
-      // Log detailed error info
-      if (error && typeof error === 'object') {
-        const errorObj = error as { message?: string; code?: string; type?: string };
-        console.error("Error type:", errorObj.type);
-        console.error("Error code:", errorObj.code);
-        console.error("Error message:", errorObj.message);
-      }
     },
+
     onMessage: (message) => {
-      console.log("ElevenLabs message received:", message);
-      if (message && typeof message === 'object') {
-        const msg = message as unknown as { type?: string; text?: string; message?: string };
-        if (msg.type === 'agent_response' || msg.text) {
-          setLastMessage(String(msg.text || msg.message || ''));
+      interface ELMessage { type?: string; text?: string; message?: string; source?: string; role?: string; }
+      const msg = message as unknown as ELMessage;
+      
+      // Log EVERYTHING extremely verbose to catch why it disconnects unseen
+      remoteLog(`📦 [Raw SDK Event]: ${JSON.stringify(msg)}`);
+
+      // Track agent speech for UI state (lastMessage)
+      if (msg.source === 'ai' || msg.type === 'agent_response') {
+        const agentText = msg.text ?? msg.message ?? '';
+        if (agentText) {
+          setLastMessage(agentText);
+          remoteLog(`[George falando]: "${agentText}"`);
         }
+        return;
+      }
+
+      // Log user transcription for debugging (no action needed — agent handles it)
+      if (msg.source === 'user') {
+        remoteLog(`🎤 [Transcribed User]: "${msg.text ?? msg.message ?? ''}"`);
       }
     },
   });
@@ -124,20 +150,13 @@ export const ElevenLabsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      remoteLog("⚠️ React unmounting ElevenLabsProvider! Killing session...");
       console.log("ElevenLabsProvider unmounting, cleaning up...");
       intentionalDisconnectRef.current = true;
 
       if (reconnectTimerRef.current) {
         window.clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
-      }
-      
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(track => {
-          track.stop();
-          console.log("Cleanup: stopped audio track:", track.label);
-        });
-        mediaStreamRef.current = null;
       }
     };
   }, []);
@@ -152,32 +171,26 @@ export const ElevenLabsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     intentionalDisconnectRef.current = false;
     
     try {
-      // Request microphone permission and store the stream
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaStreamRef.current = stream;
-      console.log("Microphone access granted, tracks:", stream.getAudioTracks().length);
-      
-      // Start the session with the agent using WebRTC
+      // 1. Ask for hardware permission explicitly before startSession 
+      // This forces the Chrome secure-lock to open first, preventing the auto-abort
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // 2. Start session
+      // @ts-ignore
       const sessionResult = await conversation.startSession({
         agentId: AGENT_ID,
-        connectionType: "webrtc",
-      } as Parameters<typeof conversation.startSession>[0]);
+      });
       
       console.log("Session started successfully:", sessionResult);
     } catch (error) {
       console.error("Failed to start conversation:", error);
       setIsConnecting(false);
       sessionActiveRef.current = false;
-      
-      // Clean up stream on failure
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(track => track.stop());
-        mediaStreamRef.current = null;
-      }
     }
   }, [conversation]);
 
   const stopConversation = useCallback(async () => {
+    remoteLog("🛑 stopConversation requested manually or via toggle.");
     if (!sessionActiveRef.current && conversation.status === "disconnected") {
       console.log("No active session to stop");
       return;
@@ -200,15 +213,6 @@ export const ElevenLabsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } catch (error) {
       console.error("Failed to end conversation:", error);
     }
-    
-    // Always clean up media stream
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach(track => {
-        track.stop();
-        console.log("Stopped audio track on manual disconnect:", track.label);
-      });
-      mediaStreamRef.current = null;
-    }
   }, [conversation]);
 
   const toggleConversation = useCallback(async () => {
@@ -228,6 +232,8 @@ export const ElevenLabsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         isSpeaking: conversation.isSpeaking,
         isConnecting,
         isListening,
+        isMCPActive,
+        activeMCPTools,
         lastMessage,
         toggleConversation,
       }}

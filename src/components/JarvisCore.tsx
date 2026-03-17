@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useElevenLabs } from "@/contexts/ElevenLabsContext";
 
 const JarvisCore = () => {
-  const { status, isSpeaking, isConnecting, isListening, toggleConversation } = useElevenLabs();
+  const { status, isSpeaking, isConnecting, isListening, isMCPActive, activeMCPTools, toggleConversation } = useElevenLabs();
   const isActive = status === "connected";
   const isProcessing = isActive && !isSpeaking && !isListening;
 
@@ -151,6 +151,30 @@ const JarvisCore = () => {
             ease: "linear",
           }}
         />
+      )}
+
+      {/* MCP Activity Indicator — electric cyan ring when Rube tool fires */}
+      {isMCPActive && (
+        <>
+          <motion.div
+            className="absolute w-36 h-36 rounded-full"
+            style={{
+              border: "2px solid hsl(195 100% 60%)",
+              boxShadow: "0 0 20px hsl(195 100% 60% / 0.9), 0 0 50px hsl(195 100% 60% / 0.5)",
+            }}
+            animate={{ scale: [1, 1.15, 1], opacity: [1, 0.6, 1] }}
+            transition={{ duration: 0.5, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className="absolute -top-8 font-mono text-[9px] tracking-widest uppercase"
+            style={{ color: "hsl(195 100% 70%)", textShadow: "0 0 10px hsl(195 100% 60%)" }}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: [0.8, 1, 0.8], y: 0 }}
+            transition={{ duration: 0.4, repeat: Infinity }}
+          >
+            ⚡ MCP: {activeMCPTools[0] ?? "DISPATCHING"}
+          </motion.div>
+        </>
       )}
 
       {/* Core with dynamic neon glow */}
