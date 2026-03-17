@@ -1,73 +1,137 @@
-# Welcome to your Lovable project
+# JARVIS Voice Assistant
 
-## Project info
+A futuristic AI voice assistant interface inspired by Iron Man's JARVIS, built with React, Vite, and ElevenLabs Conversational AI.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 🌐 Live Demo
 
-## How can I edit this code?
+- **Preview**: [Preview URL](https://id-preview--f1e0ed2c-0d4b-4091-a426-18fecfff3843.lovable.app)
+- **Published**: [ciano-void-core.lovable.app](https://ciano-void-core.lovable.app)
 
-There are several ways of editing your application.
+## ✨ Features
 
-**Use Lovable**
+- Real-time voice conversation with an AI agent via ElevenLabs WebRTC
+- Animated sci-fi core with orbital rings and audio visualizer
+- Responsive dark-themed UI with cyan accent design system
+- Auto-reconnection on unexpected disconnects
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## 🛠 Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+| Technology | Purpose |
+|------------|---------|
+| React + TypeScript | UI framework |
+| Vite | Build tool |
+| Tailwind CSS | Styling |
+| shadcn/ui | Component library |
+| ElevenLabs React SDK | Voice AI integration |
+| Framer Motion | Animations |
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## 🚀 Getting Started
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
+# Navigate to the project
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start the dev server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Environment Variables
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Create a `.env` file in the root:
 
-**Use GitHub Codespaces**
+```env
+VITE_ELEVENLABS_AGENT_ID=your_agent_id_here
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 📁 Project Structure
 
-## What technologies are used for this project?
+```
+src/
+├── components/       # UI components (JarvisCore, AudioVisualizer, etc.)
+├── contexts/         # ElevenLabs conversation provider
+├── hooks/            # Custom React hooks
+├── pages/            # Route pages
+└── index.css         # Design tokens & global styles
+```
 
-This project is built with:
+## 📦 Deployment
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Open [Lovable](https://lovable.dev) and click **Share → Publish**.
 
-## How can I deploy this project?
+To connect a custom domain: **Project → Settings → Domains → Connect Domain**.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+---
 
-## Can I connect a custom domain to my Lovable project?
+# JARVIS Assistente de Voz
 
-Yes, you can!
+Uma interface futurista de assistente de voz com IA inspirada no JARVIS do Homem de Ferro, construída com React, Vite e ElevenLabs Conversational AI.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🌐 Demo ao Vivo
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- **Preview**: [URL de Preview](https://id-preview--f1e0ed2c-0d4b-4091-a426-18fecfff3843.lovable.app)
+- **Publicado**: [ciano-void-core.lovable.app](https://ciano-void-core.lovable.app)
+
+## ✨ Funcionalidades
+
+- Conversa por voz em tempo real com um agente de IA via ElevenLabs WebRTC
+- Núcleo sci-fi animado com anéis orbitais e visualizador de áudio
+- Interface responsiva com tema escuro e sistema de design com acento ciano
+- Reconexão automática em desconexões inesperadas
+
+## 🛠 Stack Tecnológica
+
+| Tecnologia | Finalidade |
+|------------|------------|
+| React + TypeScript | Framework de UI |
+| Vite | Ferramenta de build |
+| Tailwind CSS | Estilização |
+| shadcn/ui | Biblioteca de componentes |
+| ElevenLabs React SDK | Integração de voz com IA |
+| Framer Motion | Animações |
+
+## 🚀 Como Começar
+
+```sh
+# Clone o repositório
+git clone <YOUR_GIT_URL>
+
+# Navegue até o projeto
+cd <YOUR_PROJECT_NAME>
+
+# Instale as dependências
+npm install
+
+# Inicie o servidor de desenvolvimento
+npm run dev
+```
+
+### Variáveis de Ambiente
+
+Crie um arquivo `.env` na raiz do projeto:
+
+```env
+VITE_ELEVENLABS_AGENT_ID=seu_agent_id_aqui
+```
+
+## 📁 Estrutura do Projeto
+
+```
+src/
+├── components/       # Componentes de UI (JarvisCore, AudioVisualizer, etc.)
+├── contexts/         # Provider de conversa ElevenLabs
+├── hooks/            # Hooks React customizados
+├── pages/            # Páginas de rotas
+└── index.css         # Tokens de design & estilos globais
+```
+
+## 📦 Deploy
+
+Abra o [Lovable](https://lovable.dev) e clique em **Share → Publish**.
+
+Para conectar um domínio customizado: **Project → Settings → Domains → Connect Domain**.
